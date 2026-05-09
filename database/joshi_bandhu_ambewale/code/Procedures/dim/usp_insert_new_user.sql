@@ -1,4 +1,4 @@
-create or replace procedure dim.usp_insert_new_user(
+create or replace procedure dim.usp_insert_new_customer(
 p_first_name VARCHAR(50), 
 p_last_name VARCHAR(50), 
 p_email VARCHAR(100), 
