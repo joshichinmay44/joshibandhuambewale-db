@@ -14,7 +14,11 @@ as
 $$
 begin
 	UPDATE dim.customer
-	set phone_number_calling=p_phone_number_calling,
+	set 
+	first_name=p_first_name,
+	last_name=p_last_name,
+	email=p_email,
+	phone_number_calling=p_phone_number_calling,
 	phone_number_whatsapp=p_phone_number_whatsapp,
 	customer_type=p_customer_type,
 	customer_mode=p_customer_mode,
