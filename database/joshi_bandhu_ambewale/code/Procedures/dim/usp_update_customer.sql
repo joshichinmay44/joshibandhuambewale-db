@@ -17,7 +17,11 @@ p_cust_id BIGINT
 language PLPGSQL
 as
 $$
-declare p_address_id BIGINT;
+declare 
+p_address_id BIGINT;
+previous_address_id BIGINT;
+sql_query TEXT;
+
 begin
 	UPDATE dim.customer
 	set 
@@ -38,27 +42,31 @@ begin
 
 	IF EXISTS  (SELECT 1
 	from dim.customer_address ca
-	join dim.address ad on COALESCE(ca.address_id, 0) = COALESCE(ad.address_id, 0)
-	where ca.customer_id=p_cust_id) THEN
-		MERGE INTO dim.address a
-		USING (SELECT ad.address_id
+	join dim.address a on ca.address_id = a.address_id
+	where COALESCE(ca.customer_id,0)=COALESCE(p_cust_id,0) and md5(concat(a.street, a.city, a.state, a.postal_code, a.country)) != md5(concat(p_street, p_city, p_state, p_postal_code, p_country))) THEN
+	SELECT ad.address_id into previous_address_id
 	from dim.customer_address ca
-	join dim.address ad on COALESCE(ca.address_id, 0) = COALESCE(ad.address_id, 0)
-	where ca.customer_id=p_cust_id) as source
-	on a.address_id = source.address_id
-	when matched then update
-		SET
-			street = p_street,
-			city = p_city,
-			state = p_state,
-			postal_code = p_postal_code,
-			country = p_country;
-
+	join dim.address ad on ca.address_id = ad.address_id
+	where ca.customer_id=p_cust_id and ca.is_active=TRUE;
+	INSERT INTO dim.address
+	(street, city, state, postal_code, country, created_by, updated_by)
+	VALUES(p_street, p_city,p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
+	RETURNING address_id into p_address_id;
+	UPDATE dim.customer_address SET is_active=FALSE, updated_by=p_updated_by, updated_at=now() where customer_id=p_cust_id and address_id=previous_address_id;
+	INSERT INTO dim.customer_address (customer_id, address_id, created_by, updated_by)	VALUES (p_cust_id, p_address_id, p_updated_by, p_updated_by);
+	ELSIF EXISTS (SELECT 1 FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country) THEN
+		SELECT address_id INTO p_address_id FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country;	
+		IF NOT EXISTS (SELECT 1 FROM dim.customer_address where customer_id=p_cust_id and address_id=p_address_id and is_active=TRUE) THEN
+			INSERT INTO dim.customer_address (customer_id, address_id, created_by, updated_by)	VALUES (p_cust_id, p_address_id, p_updated_by, p_updated_by);
+		END IF;
 	ELSE
-	INSERT INTO dim.address (street, city, state, postal_code, country, created_by, updated_by)
-		VALUES (p_street, p_city, p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
-		RETURNING address_id INTO p_address_id;
-		INSERT INTO dim.customer_address (customer_id, address_id, created_by, updated_by)	VALUES (p_cust_id, p_address_id, p_updated_by, p_updated_by);
+	INSERT INTO dim.address
+	(street, city, state, postal_code, country, created_by, updated_by)
+	VALUES(p_street, p_city,p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
+	RETURNING address_id into p_address_id;
+	
+	INSERT INTO dim.customer_address(address_id, customer_id, created_by, updated_by)
+	VALUES (p_address_id, p_cust_id, p_updated_by, p_updated_by);
 	END IF;
 end;
 $$;
