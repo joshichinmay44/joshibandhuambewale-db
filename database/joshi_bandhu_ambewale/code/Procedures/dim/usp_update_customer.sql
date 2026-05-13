@@ -17,6 +17,7 @@ p_cust_id BIGINT
 language PLPGSQL
 as
 $$
+declare p_address_id BIGINT;
 begin
 	UPDATE dim.customer
 	set 
@@ -31,19 +32,33 @@ begin
 	updated_at=now()
 	where customer_id=p_cust_id;
 
-	MERGE INTO dim.address a
-	USING (SELECT p_street as street, p_city as city, p_state as state, p_postal_code as postal_code, p_country as country, p_cust_id as customer_id 
+	IF p_country IS NULL AND p_state IS NULL AND p_city IS NULL AND p_postal_code IS NULL AND p_street IS NULL THEN
+		RETURN;
+	END IF;
+
+	IF EXISTS  (SELECT 1
 	from dim.customer_address ca
-	join dim.address ad on ca.address_id=ad.address_id
-	where COALESCE(ca.customer_id,'')=COALESCE(p_cust_id,'') and COALESCE(ad.street,'')=COALESCE(p_street,'') and COALESCE(ad.city,'')=COALESCE(p_city,'') and COALESCE(ad.state,'')=COALESCE(p_state,'') and COALESCE(ad.postal_code,'')=COALESCE(p_postal_code,'') and COALESCE(ad.country,'')=COALESCE(p_country,'')
-	) AS vals
-	ON a.customer_id = vals.customer_id 
-	WHEN MATCHED THEN
-		UPDATE SET
-			street = vals.street,
-			city = vals.city,
-			state = vals.state,
-			postal_code = vals.postal_code,
-			country = vals.country;
+	join dim.address ad on COALESCE(ca.address_id, 0) = COALESCE(ad.address_id, 0)
+	where ca.customer_id=p_cust_id) THEN
+		MERGE INTO dim.address a
+		USING (SELECT ad.address_id
+	from dim.customer_address ca
+	join dim.address ad on COALESCE(ca.address_id, 0) = COALESCE(ad.address_id, 0)
+	where ca.customer_id=p_cust_id) as source
+	on a.address_id = source.address_id
+	when matched then update
+		SET
+			street = p_street,
+			city = p_city,
+			state = p_state,
+			postal_code = p_postal_code,
+			country = p_country;
+
+	ELSE
+	INSERT INTO dim.address (street, city, state, postal_code, country, created_by, updated_by)
+		VALUES (p_street, p_city, p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
+		RETURNING address_id INTO p_address_id;
+		INSERT INTO dim.customer_address (customer_id, address_id, created_by, updated_by)	VALUES (p_cust_id, p_address_id, p_updated_by, p_updated_by);
+	END IF;
 end;
 $$;

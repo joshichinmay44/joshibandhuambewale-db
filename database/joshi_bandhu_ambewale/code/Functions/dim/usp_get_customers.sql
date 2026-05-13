@@ -28,7 +28,7 @@ begin
 	 a.postal_code, a.street, c.created_at, c.updated_at, c.created_by, c.updated_by  
 	from dim.customer c 
 	left join dim.customer_address ca on c.customer_id=ca.customer_id
-	left join dim.address a on ca.address_id=a.address_id
+	left join dim.address a on ca.address_id=a.address_id and c.customer_id=ca.customer_id
  ;
 end;
 $$;
