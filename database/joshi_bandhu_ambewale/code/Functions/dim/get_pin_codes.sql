@@ -5,6 +5,6 @@ as
 $$
 begin
 	return query(SELECT distinct d.pincode FROM dim.india_pin_codes d
-	where lower(d.region_name) = lower(concat(p_city_name,' region')));
+	where (lower(d.region_name) = lower(concat(p_city_name,' region'))) or (lower(d.division_name) = lower(concat(p_city_name,' division'))));
 end;
 $$;

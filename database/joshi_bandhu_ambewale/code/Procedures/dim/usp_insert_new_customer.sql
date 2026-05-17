@@ -25,12 +25,19 @@ BEGIN
 	VALUES( p_first_name, p_last_name, p_email, p_phone_number_calling, p_phone_number_whatsapp, p_customer_type, p_customer_mode , p_created_by, p_created_by)
 	RETURNING customer_id into p_customer_id;
 
+	IF EXISTS (SELECT 1 FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country) THEN
+		SELECT address_id INTO p_address_id FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country;	
+		IF NOT EXISTS (SELECT 1 FROM dim.customer_address where customer_id=p_cust_id and address_id=p_address_id and is_active=TRUE) THEN
+			INSERT INTO dim.customer_address (customer_id, address_id, created_by, updated_by)	VALUES (p_cust_id, p_address_id, p_updated_by, p_updated_by);
+		END IF;
+	ELSE
 	INSERT INTO dim.address
 	(street, city, state, postal_code, country, created_by, updated_by)
-	VALUES(p_street, p_city,p_state, p_postal_code, p_country, p_created_by, p_created_by)
+	VALUES(p_street, p_city,p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
 	RETURNING address_id into p_address_id;
 	
 	INSERT INTO dim.customer_address(address_id, customer_id, created_by, updated_by)
-	VALUES (p_address_id, p_customer_id, p_created_by, p_created_by);
+	VALUES (p_address_id, p_cust_id, p_updated_by, p_updated_by);
+	END IF;
 END;
 $$;
