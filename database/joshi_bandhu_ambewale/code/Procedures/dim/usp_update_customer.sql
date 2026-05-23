@@ -48,10 +48,14 @@ begin
 	from dim.customer_address ca
 	join dim.address ad on ca.address_id = ad.address_id
 	where ca.customer_id=p_cust_id and ca.is_active=TRUE;
-	INSERT INTO dim.address
-	(street, city, state, postal_code, country, created_by, updated_by)
-	VALUES(p_street, p_city,p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
-	RETURNING address_id into p_address_id;
+		IF NOT EXISTS (SELECT 1 FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country) THEN
+		INSERT INTO dim.address
+		(street, city, state, postal_code, country, created_by, updated_by)
+		VALUES(p_street, p_city,p_state, p_postal_code, p_country, p_updated_by, p_updated_by)
+		RETURNING address_id into p_address_id;
+		ELSE 
+		SELECT address_id INTO p_address_id FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country;	
+		END IF;
 	UPDATE dim.customer_address SET is_active=FALSE, updated_by=p_updated_by, updated_at=now() where customer_id=p_cust_id and address_id=previous_address_id;
 	INSERT INTO dim.customer_address (customer_id, address_id, created_by, updated_by)	VALUES (p_cust_id, p_address_id, p_updated_by, p_updated_by);
 	ELSIF EXISTS (SELECT 1 FROM dim.address a WHERE a.street = p_street AND a.city=p_city AND a.state=p_state AND a.postal_code=p_postal_code AND a.country=p_country) THEN
