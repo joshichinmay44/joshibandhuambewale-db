@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS dim.address (
     state VARCHAR(100),
     postal_code VARCHAR(20),
     country VARCHAR(100),
-    customer_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(200),
