@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS dm.booking (
     booking_id BIGINT GENERATED ALWAYS AS IDENTITY(START WITH 1 INCREMENT BY 1) PRIMARY KEY,
     customer_id BIGINT,
     sku_id BIGINT,
+    quantity NUMERIC(19,4),
     address_id BIGINT,
     lead_generated_by BIGINT,
     booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS dim.salespeople (
     state VARCHAR(50),
     zip_code VARCHAR(10),
     country VARCHAR(50),
+    username VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(200),
